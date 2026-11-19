@@ -33,13 +33,13 @@ Agent ID is the gate and the identity of the whole product:
 | --- | --- | --- |
 | BSC Testnet | AgentCheckInV3 | `0xFFc297C92c70D344a1A88Dc1bADcF1290326f311` |
 | BSC Testnet | MockAgentID (testnet demo gate) | `0xc176D6f36Bd0055073Eb08EC1683485D71D8bE7E` |
-| BNB Mainnet | AgentCheckInV3 | deployed for the hackathon submission, see the submission form |
+| BNB Mainnet | AgentCheckInV3 | `0xc176D6f36Bd0055073Eb08EC1683485D71D8bE7E` |
 
 On testnet the real Agent ID registry is not deployed, so the testnet build gates on a clearly labelled mock registry with the same `balanceOf` interface. The mainnet build points at the real registry address above. Contract sources are verified on Sourcify with an exact match.
 
-## Run the demo
+## Run it
 
-Open the live page, connect a wallet on BSC Testnet, and use "Get a Mock Agent ID" to try the full flow (mock mint, check-in, streaks, badges, referrals) with testnet funds only.
+Open the live page and connect the wallet that holds your Agent ID on BNB Chain mainnet, then check in. A full testnet demo (mock Agent ID mint, check-ins, badges, referrals, all with testnet funds only) is available by adding `#testnet` to the page URL.
 
 ## Tech
 
