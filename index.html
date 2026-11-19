@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Check-In: Daily Check-In for Agent ID Holders</title>
+<style>
+  :root { --bg:#0b0e17; --card:#141926; --line:#232b40; --gold:#f0b90b; --text:#eef1f6; --muted:#9aa4b2; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; min-height:100vh; }
+  .wrap { max-width:880px; margin:0 auto; padding:28px 16px 60px; }
+  header { text-align:center; margin-bottom:26px; }
+  header h1 { font-size:30px; letter-spacing:.3px; }
+  header h1 .gold { color:var(--gold); }
+  header p { color:var(--muted); margin-top:8px; font-size:15px; }
+  .badge-net { display:inline-block; margin-top:12px; padding:4px 12px; border:1px solid var(--gold); color:var(--gold); border-radius:999px; font-size:12.5px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:20px; margin-bottom:16px; }
+  .card h2 { font-size:17px; margin-bottom:14px; }
+  .row { display:flex; gap:12px; flex-wrap:wrap; }
+  .stat { flex:1 1 120px; background:#0e1220; border:1px solid var(--line); border-radius:12px; padding:14px; text-align:center; }
+  .stat .num { font-size:26px; font-weight:700; }
+  .stat .lbl { color:var(--muted); font-size:12.5px; margin-top:4px; }
+  button { background:var(--gold); color:#141414; border:0; border-radius:12px; padding:13px 22px; font-size:16px; font-weight:700; cursor:pointer; }
+  button:disabled { background:#3a4157; color:#8b93a5; cursor:not-allowed; }
+  button.ghost { background:transparent; color:var(--gold); border:1px solid var(--gold); font-size:14px; padding:10px 16px; }
+  .center { text-align:center; }
+  .status { margin-top:12px; font-size:14px; color:var(--muted); min-height:20px; }
+  .status.ok { color:#4ade80; } .status.err { color:#f87171; }
+  .tiers { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
+  .tier { border:1px solid var(--line); border-radius:12px; padding:14px; text-align:center; background:#0e1220; opacity:.55; }
+  .tier.owned { opacity:1; border-color:var(--gold); }
+  .tier .dot { width:52px; height:52px; border-radius:50%; margin:0 auto 8px; display:flex; align-items:center; justify-content:center; font-weight:800; color:#0b0e17; font-size:13px; }
+  .tier .tname { font-weight:700; }
+  .tier .tdesc { color:var(--muted); font-size:12.5px; margin-top:3px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th, td { padding:9px 8px; text-align:left; border-bottom:1px solid var(--line); }
+  th { color:var(--muted); font-weight:600; }
+  .addr { font-family:ui-monospace,Menlo,monospace; font-size:13px; }
+  footer { color:var(--muted); font-size:12.5px; text-align:center; margin-top:22px; line-height:1.7; }
+  footer a { color:var(--gold); text-decoration:none; }
+  .hidden { display:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Agent <span class="gold">Check-In</span></h1>
+    <p>The daily check-in dApp for Agent ID holders on BNB Chain.<br>Show up every day, keep your streak, earn soulbound badges.</p>
+    <span class="badge-net" id="netBadge">BSC Testnet (demo)</span>
+  </header>
+
+  <div class="card center">
+    <div id="connectBox">
+      <button id="connectBtn">Connect Wallet</button>
+      <div class="status" id="connectStatus">Connect the wallet that holds your Agent ID.</div>
+    </div>
+    <div id="appBox" class="hidden">
+      <div class="row" style="margin-bottom:16px">
+        <div class="stat"><div class="num" id="stStreak">-</div><div class="lbl">Current streak (days)</div></div>
+        <div class="stat"><div class="num" id="stPoints">-</div><div class="lbl">Points</div></div>
+        <div class="stat"><div class="num" id="stTotal">-</div><div class="lbl">Total check-ins</div></div>
+        <div class="stat"><div class="num" id="stBoost">-</div><div class="lbl">Badge boost</div></div>
+      </div>
+      <button id="checkinBtn">Check In Today</button>
+      <div style="margin-top:10px"><button class="ghost hidden" id="mintMockBtn">Get a Mock Agent ID (testnet only)</button></div>
+      <div class="status" id="status"></div>
+      <div class="status addr" id="walletLine"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Streak Badges (soulbound)</h2>
+    <div class="tiers" id="tiers"></div>
+    <p style="color:var(--muted);font-size:13px;margin-top:12px">Badges are minted automatically the day your streak reaches the threshold. They are soulbound: they cannot be transferred or sold. Each badge boosts the points your future check-ins earn.</p>
+  </div>
+
+  <div class="card hidden" id="refCard">
+    <h2>Referrals</h2>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:10px">Share your link. When a new agent makes their first check-in through it, you earn <b style="color:var(--text)">10% of the points</b> from every check-in they ever make. Maximum 5 referrals.</p>
+    <div class="row">
+      <div class="stat" style="text-align:left;flex:2 1 260px">
+        <div class="lbl" style="margin:0 0 6px">Your referral link</div>
+        <div class="addr" id="refLink" style="word-break:break-all;font-size:12.5px"></div>
+      </div>
+      <div class="stat"><div class="num" id="refCount">-</div><div class="lbl">Referrals (of 5)</div></div>
+      <div class="stat"><div class="num" id="refEarn">-</div><div class="lbl">Points from referrals</div></div>
+    </div>
+    <div style="margin-top:12px"><button class="ghost" id="copyRefBtn">Copy referral link</button> <span class="status" id="refStatus"></span></div>
+    <p style="color:var(--muted);font-size:13px;margin-top:10px" id="refByLine"></p>
+  </div>
+
+  <div class="card">
+    <h2>Leaderboard</h2>
+    <table>
+      <thead><tr><th>#</th><th>Agent</th><th>Points</th><th>Check-ins</th><th>Best streak</th></tr></thead>
+      <tbody id="lbBody"><tr><td colspan="5" style="color:var(--muted)">Connect a wallet to load the leaderboard.</td></tr></tbody>
+    </table>
+    <p style="color:var(--muted);font-size:13px;margin-top:10px"><span id="globalStats"></span></p>
+  </div>
+
+  <footer>
+    Points are a leaderboard score only, not a token, and nothing here is a promise of value.<br>
+    The contract holds no funds and has no admin keys. Contract:
+    <a id="contractLink" href="#" target="_blank" rel="noopener">view on explorer</a>
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.min.js"></script>
+<script>
+// ---------------- config ----------------
+const NETWORKS = {
+  testnet: {
+    chainId: 97, chainHex: "0x61", name: "BSC Testnet", label: "BSC Testnet (demo)",
+    rpc: "https://bsc-testnet-rpc.publicnode.com",
+    explorer: "https://testnet.bscscan.com",
+    checkIn: "0xFFc297C92c70D344a1A88Dc1bADcF1290326f311",
+    mock: "0xc176D6f36Bd0055073Eb08EC1683485D71D8bE7E"
+  },
+  mainnet: {
+    chainId: 56, chainHex: "0x38", name: "BNB Smart Chain", label: "BNB Chain Mainnet",
+    rpc: "https://bsc-rpc.publicnode.com",
+    explorer: "https://bscscan.com",
+    checkIn: "", // filled in after the mainnet deploy
+    mock: ""
+  }
+};
+const NET = location.hash === "#mainnet" ? NETWORKS.mainnet : NETWORKS.testnet;
+
+const CHECKIN_ABI = [
+  "function hasAgentID(address) view returns (bool)",
+  "function canCheckIn(address) view returns (bool)",
+  "function hasCheckedInToday(address) view returns (bool)",
+  "function getStats(address) view returns (uint256,uint256,uint256,uint256,uint256)",
+  "function boostPercentOf(address) view returns (uint256)",
+  "function badgeClaimed(address,uint8) view returns (bool)",
+  "function totalAgents() view returns (uint256)",
+  "function totalCheckIns() view returns (uint256)",
+  "function getLeaderboard(uint256) view returns (address[],uint256[],uint256[],uint256[])",
+  "function checkIn()",
+  "function checkIn(address)",
+  "function referrerOf(address) view returns (address)",
+  "function referralCountOf(address) view returns (uint256)",
+  "function referralEarnings(address) view returns (uint256)"
+];
+const MOCK_ABI = ["function mint(address) returns (uint256)", "function balanceOf(address) view returns (uint256)"];
+
+const TIERS = [
+  { tier: 1, name: "Bronze", days: 7, boost: "+10%", color: "#cd7f32" },
+  { tier: 2, name: "Silver", days: 30, boost: "+25%", color: "#c0c0c0" },
+  { tier: 3, name: "Gold", days: 100, boost: "+50%", color: "#ffd700" },
+  { tier: 4, name: "Diamond", days: 365, boost: "+100%", color: "#7ee7f5" }
+];
+
+// ---------------- state ----------------
+let provider, signer, account, contract, mockContract;
+
+// Capture a referral address from the URL (?ref=0x...) and keep it for the
+// first check-in. Binding itself happens on chain, once, at that check-in.
+const urlRef = new URLSearchParams(location.search).get("ref");
+if (urlRef && /^0x[0-9a-fA-F]{40}$/.test(urlRef)) localStorage.setItem("aci_ref", urlRef);
+const storedRef = localStorage.getItem("aci_ref");
+
+const $ = (id) => document.getElementById(id);
+$("netBadge").textContent = NET.label;
+$("contractLink").href = NET.explorer + "/address/" + NET.checkIn;
+$("contractLink").textContent = NET.checkIn.slice(0, 10) + "..." + NET.checkIn.slice(-6);
+
+function setStatus(msg, cls) { const el = $("status"); el.textContent = msg; el.className = "status" + (cls ? " " + cls : ""); }
+function shortAddr(a) { return a.slice(0, 6) + "..." + a.slice(-4); }
+
+function renderTiers(owned) {
+  $("tiers").innerHTML = TIERS.map(t =>
+    '<div class="tier' + (owned && owned[t.tier] ? " owned" : "") + '">' +
+    '<div class="dot" style="background:' + t.color + '">' + t.days + 'd</div>' +
+    '<div class="tname">' + t.name + '</div>' +
+    '<div class="tdesc">' + t.days + '-day streak · ' + t.boost + ' points</div>' +
+    '<div class="tdesc">' + (owned ? (owned[t.tier] ? "Owned" : "Not yet") : "") + '</div></div>'
+  ).join("");
+}
+renderTiers(null);
+
+async function refresh() {
+  if (!contract || !account) return;
+  const [stats, has, doneToday, boost] = await Promise.all([
+    contract.getStats(account), contract.hasAgentID(account),
+    contract.hasCheckedInToday(account), contract.boostPercentOf(account)
+  ]);
+  $("stStreak").textContent = stats[1].toString();
+  $("stPoints").textContent = stats[3].toString();
+  $("stTotal").textContent = stats[0].toString();
+  $("stBoost").textContent = "+" + boost.toString() + "%";
+  $("walletLine").textContent = account;
+
+  const btn = $("checkinBtn");
+  if (!has) {
+    btn.disabled = true; btn.textContent = "No Agent ID in this wallet";
+    setStatus("This wallet does not hold an Agent ID, so it cannot check in.", "err");
+    if (NET.mock) $("mintMockBtn").classList.remove("hidden");
+  } else if (doneToday) {
+    btn.disabled = true; btn.textContent = "Checked In Today";
+    setStatus("Done for today. Come back tomorrow to grow your streak.", "ok");
+    $("mintMockBtn").classList.add("hidden");
+  } else {
+    btn.disabled = false; btn.textContent = "Check In Today";
+    setStatus("You hold an Agent ID and have not checked in yet today.", "");
+    $("mintMockBtn").classList.add("hidden");
+  }
+
+  const owned = {};
+  for (const t of TIERS) owned[t.tier] = await contract.badgeClaimed(account, t.tier);
+  renderTiers(owned);
+
+  // Referral card
+  $("refCard").classList.remove("hidden");
+  $("refLink").textContent = location.origin + location.pathname + "?ref=" + account;
+  const [refCount, refEarn, myReferrer] = await Promise.all([
+    contract.referralCountOf(account), contract.referralEarnings(account), contract.referrerOf(account)
+  ]);
+  $("refCount").textContent = refCount.toString();
+  $("refEarn").textContent = refEarn.toString();
+  $("refByLine").textContent = (myReferrer !== "0x0000000000000000000000000000000000000000")
+    ? "You were referred by " + shortAddr(myReferrer) + ". They earn 10% of your check-in points."
+    : (stats[0] === 0n ? "Not referred yet. If you arrived through a friend's link, it binds at your first check-in." : "You joined without a referrer.");
+
+  const [agents, total] = await Promise.all([contract.totalAgents(), contract.totalCheckIns()]);
+  $("globalStats").textContent = agents.toString() + " agents have checked in " + total.toString() + " times in total.";
+  try {
+    const lb = await contract.getLeaderboard(10);
+    if (lb[0].length === 0) {
+      $("lbBody").innerHTML = '<tr><td colspan="5" style="color:var(--muted)">No check-ins yet. Be the first.</td></tr>';
+    } else {
+      $("lbBody").innerHTML = lb[0].map((a, i) =>
+        "<tr><td>" + (i + 1) + '</td><td class="addr">' + shortAddr(a) + "</td><td>" + lb[1][i].toString() +
+        "</td><td>" + lb[2][i].toString() + "</td><td>" + lb[3][i].toString() + "</td></tr>").join("");
+    }
+  } catch (e) { /* leaderboard is best-effort */ }
+}
+
+async function ensureNetwork() {
+  const current = await window.ethereum.request({ method: "eth_chainId" });
+  if (current !== NET.chainHex) {
+    try {
+      await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: NET.chainHex }] });
+    } catch (e) {
+      if (e.code === 4902) {
+        await window.ethereum.request({ method: "wallet_addEthereumChain", params: [{
+          chainId: NET.chainHex, chainName: NET.name, rpcUrls: [NET.rpc],
+          nativeCurrency: { name: "BNB", symbol: "tBNB", decimals: 18 },
+          blockExplorerUrls: [NET.explorer]
+        }] });
+      } else throw e;
+    }
+  }
+}
+
+$("connectBtn").onclick = async () => {
+  try {
+    if (!window.ethereum) { $("connectStatus").textContent = "No wallet found. Open this page in a browser with MetaMask or Binance Wallet."; return; }
+    await ensureNetwork();
+    provider = new ethers.BrowserProvider(window.ethereum);
+    signer = await provider.getSigner();
+    account = await signer.getAddress();
+    contract = new ethers.Contract(NET.checkIn, CHECKIN_ABI, signer);
+    if (NET.mock) mockContract = new ethers.Contract(NET.mock, MOCK_ABI, signer);
+    $("connectBox").classList.add("hidden");
+    $("appBox").classList.remove("hidden");
+    await refresh();
+  } catch (e) {
+    $("connectStatus").textContent = "Connection failed: " + (e.shortMessage || e.message);
+  }
+};
+
+$("checkinBtn").onclick = async () => {
+  try {
+    $("checkinBtn").disabled = true;
+    setStatus("Confirm the check-in in your wallet...");
+    const stats = await contract.getStats(account);
+    let tx;
+    if (stats[0] === 0n && storedRef && storedRef.toLowerCase() !== account.toLowerCase()) {
+      tx = await contract["checkIn(address)"](storedRef);
+    } else {
+      tx = await contract["checkIn()"]();
+    }
+    setStatus("Sent. Waiting for confirmation...");
+    await tx.wait();
+    setStatus("Check-in confirmed on chain. See you tomorrow.", "ok");
+    await refresh();
+  } catch (e) {
+    setStatus("Check-in failed: " + (e.shortMessage || e.message), "err");
+    await refresh();
+  }
+};
+
+$("copyRefBtn").onclick = async () => {
+  try {
+    await navigator.clipboard.writeText($("refLink").textContent);
+    $("refStatus").textContent = "Copied.";
+  } catch (e) {
+    $("refStatus").textContent = "Copy failed, select the link manually.";
+  }
+};
+
+$("mintMockBtn").onclick = async () => {
+  try {
+    setStatus("Minting a mock Agent ID (testnet only)...");
+    const tx = await mockContract.mint(account);
+    await tx.wait();
+    setStatus("Mock Agent ID minted. You can check in now.", "ok");
+    await refresh();
+  } catch (e) {
+    setStatus("Mint failed: " + (e.shortMessage || e.message), "err");
+  }
+};
+
+if (window.ethereum) {
+  window.ethereum.on("accountsChanged", () => location.reload());
+  window.ethereum.on("chainChanged", () => location.reload());
+}
+</script>
+</body>
+</html>
