@@ -120,11 +120,11 @@ const NETWORKS = {
     chainId: 56, chainHex: "0x38", name: "BNB Smart Chain", label: "BNB Chain Mainnet",
     rpc: "https://bsc-rpc.publicnode.com",
     explorer: "https://bscscan.com",
-    checkIn: "", // filled in after the mainnet deploy
+    checkIn: "0xc176D6f36Bd0055073Eb08EC1683485D71D8bE7E", // AgentCheckInV3 on BNB mainnet
     mock: ""
   }
 };
-const NET = location.hash === "#mainnet" ? NETWORKS.mainnet : NETWORKS.testnet;
+const NET = location.hash === "#testnet" ? NETWORKS.testnet : NETWORKS.mainnet;
 
 const CHECKIN_ABI = [
   "function hasAgentID(address) view returns (bool)",
@@ -245,7 +245,7 @@ async function ensureNetwork() {
       if (e.code === 4902) {
         await window.ethereum.request({ method: "wallet_addEthereumChain", params: [{
           chainId: NET.chainHex, chainName: NET.name, rpcUrls: [NET.rpc],
-          nativeCurrency: { name: "BNB", symbol: "tBNB", decimals: 18 },
+          nativeCurrency: { name: "BNB", symbol: NET.chainId === 97 ? "tBNB" : "BNB", decimals: 18 },
           blockExplorerUrls: [NET.explorer]
         }] });
       } else throw e;
